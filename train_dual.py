@@ -399,7 +399,22 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
                 if opt.save_period > 0 and epoch % opt.save_period == 0:
                     torch.save(ckpt, w / f'epoch{epoch}.pt')
                 del ckpt
-                callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
+                # Add W&B artifact logging
+                if opt.sync_wandb and RANK in {-1, 0}:
+                    import wandb
+                
+                    # Initialize W&B artifact
+                    artifact = wandb.Artifact('model-weights', type='model')
+                    if last.exists():
+                        artifact.add_file(str(last), name="last.pt")
+                    if best.exists():
+                        artifact.add_file(str(best), name="best.pt")
+                    
+                    results_file = save_dir / "results.txt"
+                    if results_file.exists():
+                        artifact.add_file(str(results_file), name="results.txt")
+                    
+                    wandb.log_artifact(artifact)
     
         # EarlyStopping
         if RANK != -1:  # if DDP training
