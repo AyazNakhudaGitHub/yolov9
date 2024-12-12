@@ -520,9 +520,9 @@ def main(opt, callbacks=Callbacks()):
         #check_requirements()
     
     # Initialize W&B if sync-wandb is enabled
-    if opt.sync_wandb:
-        import wandb
-        wandb.init(project=opt.project, config=vars(opt))
+    if opt.sync_wandb:  # Initialize W&B only if sync is enabled
+        if wandb.run is None:  # Initialize only if not already active
+            wandb.init(project=opt.project, config=vars(opt))
 
     # Resume (from specified or most recent last.pt)
     if opt.resume and not check_comet_resume(opt) and not opt.evolve:
