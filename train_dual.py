@@ -363,6 +363,8 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
     
             # Log metrics to W&B
             if opt.sync_wandb:
+                if wandb.run is None:  # Ensure W&B is initialized
+                    wandb.init(project=opt.project, config=vars(opt))
                 wandb.log({
                     'epoch': epoch,
                     'train_loss': mloss.mean().item(),
