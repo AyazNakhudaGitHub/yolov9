@@ -394,8 +394,9 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
                     'optimizer': optimizer.state_dict(),
                     'opt': vars(opt),
                     'git': GIT_INFO,  # {remote, branch, commit} if a git repo
-                    'date': datetime.now().isoformat()}
-    
+                    'date': datetime.now().isoformat()
+                }
+            
                 # Save last, best and delete
                 torch.save(ckpt, last)
                 if best_fitness == fi:
@@ -403,22 +404,35 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
                 if opt.save_period > 0 and epoch % opt.save_period == 0:
                     torch.save(ckpt, w / f'epoch{epoch}.pt')
                 del ckpt
+            
+                # Write training and validation results to results.txt
+                results_file = save_dir / "results.txt"
+                with open(results_file, "a") as f:
+                    f.write(f"Epoch: {epoch}\n")
+                    f.write("Training Results:\n")
+                    f.write(f"  Losses: Box={mloss[0]:.4f}, Obj={mloss[1]:.4f}, Cls={mloss[2]:.4f}\n")
+                    f.write(f"  Learning Rate: {lr[0]:.6f}\n")
+                    f.write("Validation Results:\n")
+                    f.write(f"  Precision: {results[0]:.4f}, Recall: {results[1]:.4f}\n")
+                    f.write(f"  mAP@0.5: {results[2]:.4f}, mAP@0.5:0.95: {results[3]:.4f}\n")
+                    f.write(f"  Losses: Box={results[4]:.4f}, Obj={results[5]:.4f}, Cls={results[6]:.4f}\n")
+                    f.write("="*50 + "\n")
+            
                 # Add W&B artifact logging
                 if opt.sync_wandb and RANK in {-1, 0}:
                     import wandb
-                
+            
                     # Initialize W&B artifact
                     artifact = wandb.Artifact('model-weights', type='model')
                     if last.exists():
                         artifact.add_file(str(last), name="last.pt")
                     if best.exists():
                         artifact.add_file(str(best), name="best.pt")
-                    
-                    results_file = save_dir / "results.txt"
                     if results_file.exists():
                         artifact.add_file(str(results_file), name="results.txt")
                     
                     wandb.log_artifact(artifact)
+
     
         # EarlyStopping
         if RANK != -1:  # if DDP training
