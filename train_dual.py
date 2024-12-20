@@ -419,18 +419,28 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
                     f.write("="*50 + "\n")
             
                 # Add W&B artifact logging
+                # Add W&B artifact logging
                 if opt.sync_wandb and RANK in {-1, 0}:
                     import wandb
             
                     # Initialize W&B artifact
-                    artifact = wandb.Artifact('model-weights', type='model')
+                    artifact = wandb.Artifact('training-artifacts', type='results')
+            
+                    # Add model checkpoints
                     if last.exists():
                         artifact.add_file(str(last), name="last.pt")
                     if best.exists():
                         artifact.add_file(str(best), name="best.pt")
+                    
+                    # Add results files
+                    results_file = save_dir / "results.txt"
+                    results_csv_path = save_dir / "results.csv"
                     if results_file.exists():
                         artifact.add_file(str(results_file), name="results.txt")
+                    if results_csv_path.exists():
+                        artifact.add_file(str(results_csv_path), name="results.csv")
                     
+                    # Log the artifact to W&B
                     wandb.log_artifact(artifact)
 
     
